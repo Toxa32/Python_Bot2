@@ -1,32 +1,36 @@
 import requests
 import json
-from config import currencies
+from config import values
 
 
 class APIException(Exception):
     pass
 
 
-class Converter:
+class CryptoConverter:
     @staticmethod
-    def get_convert(curr_from, curr_to, amount):
-        try:
-            curr_from_key = currencies[curr_from]
-        except KeyError:
-            raise APIException(f'Валюта {curr_from} не найдена!\nСписок доступных валют см. /values')
-        try:
-            curr_to_key = currencies[curr_to]
-        except KeyError:
-            raise APIException(f'Валюта {curr_to} не найдена!\nСписок доступных валют см. /values')
-        if curr_from_key == curr_to_key:
-            raise APIException(f'Невозможно перевести одинаковые валюты {curr_from}')
-        try:
-            amount = float(amount.replace(',', '.'))
-        except ValueError:
-            raise APIException(f'Неудалось обработать количество: {amount}')
+    def convert(base: str, quote: str, amount: str):
 
-        r = requests.get(f"https://min-api.cryptocompare.com/data/price?fsym={curr_to_key}&tsyms={curr_from_key}&amount={amount}")
-       
-        result = json.loads(r.content)[currencies[curr_from_key]]
+        if base == quote:
+            raise APIException(f'Не удалось перевести одинаковые валюты: {base}-{quote}')
+
+        try:
+            base_ticker = values[base]
+        except KeyError:
+            raise APIException(f'Не удалось обработать валюту {base}')
+
+        try:
+            quote_ticker = values[quote]
+        except KeyError:
+            raise APIException(f'Не удалось обработать валюту {quote}')
+
+        try:
+            amount = float(amount)
+        except ValueError:
+            raise APIException(f'Не удалось обработать количество {amount}')
+
+        r = requests.get(f'https://min-api.cryptocompare.com/data/price?fsym={base_ticker}&tsyms={quote_ticker}')
+        result = json.loads(r.content)[values[quote]]
+        result *= amount
+
         return result
-    
